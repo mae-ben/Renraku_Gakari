@@ -57,7 +57,10 @@ class RenrakuGakariBot(commands.Bot):
         )
 
     async def close(self):
-        self.client.close()
+        # MongoDBクライアントを閉じる
+        if hasattr(self, 'client'):
+            self.client.close()
+        # スーパークラスのcloseメソッドを呼び出す
         await super().close()
 
 bot = RenrakuGakariBot(command_prefix='/', intents=intents)
@@ -216,6 +219,10 @@ async def on_message_delete(message):
 @bot.event
 async def on_error(event, *args, **kwargs):
     logger.error(f"An error occurred in event {event}", exc_info=True)
+    if event == 'on_interaction':
+        interaction = args[0]
+        if not interaction.response.is_done():
+            await interaction.response.send_message("An error occurred while processing the command.", ephemeral=True)
 
 async def main():
     bot_token = os.getenv('RENRAKU_GAKARI_TOKEN')
@@ -225,23 +232,24 @@ async def main():
         logger.error("Bot token or MongoDB URI not found in environment variables")
         raise ValueError("Bot token or MongoDB URI not found in environment variables")
 
-    while True:
-        try:
-            async with bot:
-                await bot.start(bot_token)
-        except discord.errors.HTTPException as e:
-            if e.status == 429:
-                logger.warning("Rate limited. Retrying in 30 seconds...")
-                await asyncio.sleep(30)
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
-            logger.warning("Attempting to reconnect in 60 seconds...")
-            await asyncio.sleep(60)
-
-def run_bot():
-    asyncio.run(main())
+    async with bot:
+        await bot.start(bot_token)
 
 if __name__ == "__main__":
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
+    import uvicorn
+    from concurrent.futures import ThreadPoolExecutor
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    loop = asyncio.get_event_loop()
+
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        loop.run_until_complete(bot.close())
+        executor.shutdown(wait=True)
+        loop.close()
+
+    # FastAPIアプリケーションの起動
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8080)))
