@@ -240,16 +240,13 @@ if __name__ == "__main__":
     from concurrent.futures import ThreadPoolExecutor
 
     executor = ThreadPoolExecutor(max_workers=1)
-    loop = asyncio.get_event_loop()
 
     try:
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt:
         pass
     finally:
-        loop.run_until_complete(bot.close())
         executor.shutdown(wait=True)
-        loop.close()
 
     # FastAPIアプリケーションの起動
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8080)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8000)))
