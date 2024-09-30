@@ -224,7 +224,7 @@ async def on_error(event, *args, **kwargs):
         if not interaction.response.is_done():
             await interaction.response.send_message("An error occurred while processing the command.", ephemeral=True)
 
-async def main():
+if __name__ == "__main__":
     bot_token = os.getenv('RENRAKU_GAKARI_TOKEN')
     mongo_uri = os.getenv('MONGO_URI')
     
@@ -232,21 +232,14 @@ async def main():
         logger.error("Bot token or MongoDB URI not found in environment variables")
         raise ValueError("Bot token or MongoDB URI not found in environment variables")
 
-    async with bot:
+    async def start_bot():
         await bot.start(bot_token)
 
-if __name__ == "__main__":
-    import uvicorn
-    from concurrent.futures import ThreadPoolExecutor
+    def run_bot():
+        asyncio.run(start_bot())
 
-    executor = ThreadPoolExecutor(max_workers=1)
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
 
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        executor.shutdown(wait=True)
-
-    # FastAPIアプリケーションの起動
+    # FastAPIアプリケーションを起動
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8000)))
