@@ -222,13 +222,21 @@ async def main():
 
     while True:
         try:
-            bot.loop.create_task(bot.start(bot_token))
-            uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8080)))
+            async with bot:
+                await bot.start(bot_token)
         except discord.errors.HTTPException as e:
             if e.status == 429:
                 logger.warning("Rate limited. Retrying in 30 seconds...")
-                time.sleep(30)
+                await asyncio.sleep(30)
         except Exception as e:
             logger.error(f"An error occurred: {e}")
             logger.warning("Attempting to reconnect in 60 seconds...")
-            time.sleep(60)
+            await asyncio.sleep(60)
+
+def run_bot():
+    asyncio.run(main())
+
+if __name__ == "__main__":
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv('PORT', 8080)))
