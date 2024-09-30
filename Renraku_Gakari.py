@@ -9,6 +9,7 @@ from fastapi import FastAPI
 import uvicorn
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import threading
 
 # Set up logging
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
@@ -211,7 +212,7 @@ async def on_message_delete(message):
 async def on_error(event, *args, **kwargs):
     logger.error(f"An error occurred in event {event}", exc_info=True)
 
-if __name__ == "__main__":
+async def main():
     bot_token = os.getenv('RENRAKU_GAKARI_TOKEN')
     mongo_uri = os.getenv('MONGO_URI')
     
