@@ -26,7 +26,7 @@ class RenrakuGakariBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         mongo_uri = os.getenv('MONGO_URI')
-        self.client = MongoClient(mongo_uri, ssl_cert_reqs=ssl.CERT_NONE)
+        self.client = MongoClient(mongo_uri, tlsAllowInvalidCertificates=True)
         self.db = self.client.renraku_gakari_bot
         self.config_collection = self.db.guild_configs
 
