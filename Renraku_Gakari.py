@@ -8,6 +8,7 @@ import asyncio
 from fastapi import FastAPI
 import uvicorn
 from pymongo import MongoClient
+import ssl
 from bson.objectid import ObjectId
 import threading
 
@@ -25,7 +26,7 @@ class RenrakuGakariBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         mongo_uri = os.getenv('MONGO_URI')
-        self.client = MongoClient(mongo_uri)
+        self.client = MongoClient(mongo_uri, ssl_cert_reqs=ssl.CERT_NONE)
         self.db = self.client.renraku_gakari_bot
         self.config_collection = self.db.guild_configs
 
@@ -39,10 +40,14 @@ class RenrakuGakariBot(commands.Bot):
             await asyncio.sleep(60)  # Run every minute
 
     def get_guild_config(self, guild_id):
-        config = self.config_collection.find_one({"guild_id": str(guild_id)})
-        if config:
-            return config
-        return {'guild_id': str(guild_id), 'monitored_channels': [], 'destination_channel': None}
+        try:
+            config = self.config_collection.find_one({"guild_id": str(guild_id)})
+            if config:
+                return config
+            return {'guild_id': str(guild_id), 'monitored_channels': [], 'destination_channel': None}
+        except pymongo.errors.ServerSelectionTimeoutError as e:
+            logger.error(f"Failed to connect to MongoDB: {e}")
+            return {'guild_id': str(guild_id), 'monitored_channels': [], 'destination_channel': None}
 
     def save_guild_config(self, guild_id, guild_config):
         self.config_collection.update_one(
